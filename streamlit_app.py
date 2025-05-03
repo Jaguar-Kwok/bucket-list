@@ -244,40 +244,114 @@ def event_details_page():
         with cols[idx % 3]:
             if st.button(f"📅 {event['name_tc']}", key=f"all_event_{event['id']}"):
                 st.session_state.selected_event = event['id']
-    
+
     # Selected event details
     if st.session_state.selected_event:
         conn = sqlite3.connect(DB_NAME)
-        event = conn.execute('''SELECT * FROM events 
-                              WHERE id = ?''', 
+        conn.row_factory = sqlite3.Row
+        event = conn.execute('SELECT * FROM events WHERE id = ?', 
                            (st.session_state.selected_event,)).fetchone()
         conn.close()
-        
-        st.divider()
-        st.subheader("活動詳細資料")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if event['thumbnail_url']:
-                st.image(event['thumbnail_url'], use_container_width=True)
-            st.write(f"**活動編號:** {event['external_id']}")
-            st.write(f"**開始日期:** {event['start_date']}")
-            st.write(f"**結束日期:** {event['end_date']}")
-            st.write(f"**名額:** {event['quota']}")
+
+        if event:
+            st.divider()
+            st.subheader("活動詳細資料")
+            col1, col2 = st.columns(2)
+            with col1:
+                if event['thumbnail_url']:
+                    st.image(event['thumbnail_url'], width=300)
+                st.write(f"**活動編號:** {event['external_id']}")
+                st.write(f"**開始日期:** {event['start_date']}")
+                st.write(f"**結束日期:** {event['end_date']}")
+                st.write(f"**名額:** {event['quota']}")
+                
+            with col2:
+                st.write(f"**地點:** {event['location_address_tc']}")
+                st.write(f"**主辦單位:** {event['organizer_tc']}")
+                st.write(f"**活動性質:** {event['activity_nature_tc']}")
+                st.write(f"**描述:** {event['description_tc']}")
             
-        with col2:
-            st.write(f"**地點:** {event['location_address_tc']}")
-            st.write(f"**主辦單位:** {event['organizer_tc']}")
-            st.write(f"**活動性質:** {event['activity_nature_tc']}")
-            st.write(f"**描述:** {event['description_tc']}")
-        
-        if event['location_lat'] and event['location_lng']:
-            st.subheader("活動地點")
-            df = pd.DataFrame({
-                'lat': [event['location_lat']],
-                'lon': [event['location_lng']]
-            })
-            st.map(df, use_container_width=True)
+            if event['location_lat'] and event['location_lng']:
+                st.subheader("活動地點")
+                df = pd.DataFrame({
+                    'lat': [event['location_lat']],
+                    'lon': [event['location_lng']]
+                })
+                st.map(df, use_container_width=True)
+            
+            st.divider()
+            st.subheader("學生管理")
+            
+            # Get all students and current registrations
+            all_students = get_students()
+            conn = sqlite3.connect(DB_NAME)
+            current_reg = conn.execute('''SELECT student_id FROM attendance 
+                                       WHERE event_id = ?''', 
+                                    (event['id'],)).fetchall()
+            conn.close()
+            current_reg_ids = [r[0] for r in current_reg]
+            
+            # Student registration multiselect
+            student_options = {s['id']: s['name'] for s in all_students}
+            selected_ids = st.multiselect(
+                "註冊學生",
+                options=list(student_options.keys()),
+                format_func=lambda x: student_options[x],
+                default=current_reg_ids
+            )
+            
+            # Save registration changes
+            if st.button("保存註冊名單"):
+                conn = sqlite3.connect(DB_NAME)
+                # Remove unselected students
+                conn.execute('''DELETE FROM attendance 
+                             WHERE event_id = ? AND student_id NOT IN ({})'''.format(
+                                 ','.join(['?']*len(selected_ids))),
+                             [event['id']] + selected_ids)
+                # Add new registrations
+                for student_id in selected_ids:
+                    conn.execute('''INSERT OR IGNORE INTO attendance 
+                                 (event_id, student_id, attended, updated_at)
+                                 VALUES (?,?,?,?)''',
+                              (event['id'], student_id, False, datetime.now()))
+                conn.commit()
+                conn.close()
+                st.success("註冊名單已更新")
+            
+            # Attendance editor
+            st.subheader("出席記錄")
+            conn = sqlite3.connect(DB_NAME)
+            attendance = pd.read_sql('''SELECT students.id as student_id, students.name, attendance.attended
+                                      FROM attendance
+                                      JOIN students ON attendance.student_id = students.id
+                                      WHERE event_id = ?''', 
+                                   conn, params=(event['id'],))
+            conn.close()
+            
+            if not attendance.empty:
+                edited_attendance = st.data_editor(
+                    attendance,
+                    column_config={
+                        "student_id": None,
+                        "name": st.column_config.TextColumn("學生姓名", disabled=True),
+                        "attended": st.column_config.CheckboxColumn("出席")
+                    },
+                    hide_index=True,
+                    key=f"attendance_{event['id']}"
+                )
+                
+                # Save attendance changes
+                if not edited_attendance.equals(attendance):
+                    conn = sqlite3.connect(DB_NAME)
+                    for _, row in edited_attendance.iterrows():
+                        conn.execute('''UPDATE attendance SET attended = ?, updated_at = ?
+                                     WHERE event_id = ? AND student_id = ?''',
+                                  (row['attended'], datetime.now(), event['id'], row['student_id']))
+                    conn.commit()
+                    conn.close()
+                    st.success("出席記錄已更新")
+            else:
+                st.info("暫無註冊學生")         
 
 def student_details_page():
     st.title("學生詳情")
@@ -294,33 +368,31 @@ def student_details_page():
     # Selected student details
     if st.session_state.selected_student:
         conn = sqlite3.connect(DB_NAME)
-        student = conn.execute('''SELECT * FROM students 
-                                WHERE id = ?''', 
-                             (st.session_state.selected_student,)).fetchone()
+        conn.row_factory = sqlite3.Row  # Add this line
+        student = conn.execute('SELECT * FROM students WHERE id = ?', 
+                            (st.session_state.selected_student,)).fetchone()
         attendance = conn.execute('''SELECT events.name_tc, events.start_date, attendance.attended
-                                   FROM attendance
-                                   JOIN events ON attendance.event_id = events.id
-                                   WHERE student_id = ?''', 
+                                FROM attendance
+                                JOIN events ON attendance.event_id = events.id
+                                WHERE student_id = ?''', 
                                 (st.session_state.selected_student,)).fetchall()
         conn.close()
-        
+        df = pd.DataFrame(attendance, columns=['活動名稱', '日期', '出席'])
+     
         st.divider()
         st.subheader("學生詳細資料")
         
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**姓名:** {student['name']}")
-            st.write(f"**聯絡方式:** {student['contact']}")
-            st.write(f"**註冊時間:** {student['registered_at']}")
-        
-        with col2:
-            st.subheader("出席記錄")
-            if attendance:
-                df = pd.DataFrame(attendance, columns=['活動名稱', '日期', '出席'])
-                df['出席'] = df['出席'].map({1: '✅', 0: '❌'})
-                st.dataframe(df, hide_index=True)
-            else:
-                st.info("暫無出席記錄")
+        st.write(f"**姓名:** {student['name']}")
+        st.write(f"**聯絡方式:** {student['contact']}")
+        st.write(f"**註冊時間:** {student['registered_at']}")
+        if attendance:
+            st.write(f"Registed Event: {len(df.index)} Attended Event: {(df['出席'] == 1).sum()} ")
+        st.subheader("出席記錄")
+        if attendance:
+            df['出席'] = df['出席'].map({1: '✅', 0: '❌'})
+            st.dataframe(df, hide_index=True)
+        else:
+            st.info("暫無出席記錄")
 
 # Main app layout
 st.sidebar.title("導航")
