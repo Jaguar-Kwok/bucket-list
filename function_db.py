@@ -71,8 +71,8 @@ def fetch_and_save_external_events():
                         event['sessions'][0]['startDate'] if event['sessions'] else None,
                         event['sessions'][0]['endDate'] if event['sessions'] else None,
                         event['locationAddress_tc'],
-                        event['locationLatLng']['lat'] if event['locationLatLng'] else None,
-                        event['locationLatLng']['lng'] if event['locationLatLng'] else None,
+                        event['locationLatLng']['lat'] if event['locationLatLng']  is not None and 'lat' in event['locationLatLng'] else 0.0,
+                        event['locationLatLng']['lng'] if event['locationLatLng']  is not None and 'lng' in event['locationLatLng'] else 0.0,
                         event['quota'],
                         event['supportingOrganiserName_tc'],
                         event['activityNature']['name_tc'],
@@ -109,7 +109,9 @@ def save_event(event):
                       WHERE id=?''',
                    (event['name_tc'], event['name_en'], event['description_tc'],
                     event['start_date'], event['end_date'], event['location_address_tc'],
-                    event['location_lat'], event['location_lng'], event['quota'],
+                    event['location_lat'] if event['location_lat'] is not None else 0.0,  # Modified
+                    event['location_lng'] if event['location_lng'] is not None else 0.0,  # Modified
+                    event['quota'],
                     event['organizer_tc'], event['activity_nature_tc'],
                     event['sessions'], event['thumbnail_url'], event['id']))
     else:
@@ -120,7 +122,9 @@ def save_event(event):
                       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                    (event['name_tc'], event['name_en'], event['description_tc'],
                     event['start_date'], event['end_date'], event['location_address_tc'],
-                    event['location_lat'], event['location_lng'], event['quota'],
+                    event['location_lat'] if event['location_lat'] is not None else 0.0,  # Modified
+                    event['location_lng'] if event['location_lng'] is not None else 0.0,  # Modified
+                    event['quota'],
                     event['organizer_tc'], event['activity_nature_tc'],
                     event['sessions'], event['thumbnail_url'], datetime.now()))
     conn.commit()
