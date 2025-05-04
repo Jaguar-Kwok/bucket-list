@@ -51,16 +51,9 @@ if st.session_state.selected_event:
         st.divider()
         st.subheader("學生管理")
         
-        # Get all students and current registrations
         all_students = db.get_students()
-        conn = sqlite3.connect(DB_NAME)
-        current_reg = conn.execute('''SELECT student_id FROM attendance 
-                                   WHERE event_id = ?''', 
-                                (event['id'],)).fetchall()
-        conn.close()
-        current_reg_ids = [r[0] for r in current_reg]
+        current_reg_ids = db.get_current_registrations(event['id'])
         
-        # Student registration multiselect
         student_options = {s['id']: s['name'] for s in all_students}
         selected_ids = st.multiselect(
             "註冊學生",
@@ -69,33 +62,12 @@ if st.session_state.selected_event:
             default=current_reg_ids
         )
         
-        # Save registration changes
         if st.button("保存註冊名單"):
-            conn = sqlite3.connect(DB_NAME)
-            # Remove unselected students
-            conn.execute('''DELETE FROM attendance 
-                         WHERE event_id = ? AND student_id NOT IN ({})'''.format(
-                             ','.join(['?']*len(selected_ids))),
-                         [event['id']] + selected_ids)
-            # Add new registrations
-            for student_id in selected_ids:
-                conn.execute('''INSERT OR IGNORE INTO attendance 
-                             (event_id, student_id, attended, updated_at)
-                             VALUES (?,?,?,?)''',
-                          (event['id'], student_id, False, datetime.now()))
-            conn.commit()
-            conn.close()
+            db.save_registration_changes(event['id'], selected_ids)
             st.success("註冊名單已更新")
         
-        # Attendance editor
         st.subheader("出席記錄")
-        conn = sqlite3.connect(DB_NAME)
-        attendance = pd.read_sql('''SELECT students.id as student_id, students.name, attendance.attended
-                                  FROM attendance
-                                  JOIN students ON attendance.student_id = students.id
-                                  WHERE event_id = ?''', 
-                               conn, params=(event['id'],))
-        conn.close()
+        attendance = db.get_attendance_records(event['id'])
         
         if not attendance.empty:
             edited_attendance = st.data_editor(
@@ -109,17 +81,8 @@ if st.session_state.selected_event:
                 key=f"attendance_{event['id']}"
             )
             
-            # Save attendance changes
             if not edited_attendance.equals(attendance):
-                conn = sqlite3.connect(DB_NAME)
-                for _, row in edited_attendance.iterrows():
-                    conn.execute('''UPDATE attendance SET attended = ?, updated_at = ?
-                                 WHERE event_id = ? AND student_id = ?''',
-                              (row['attended'], datetime.now(), event['id'], row['student_id']))
-                conn.commit()
-                conn.close()
+                db.update_attendance_records(edited_attendance, event['id'])
                 st.success("出席記錄已更新")
         else:
-            st.info("暫無註冊學生")         
-
-
+            st.info("暫無註冊學生")

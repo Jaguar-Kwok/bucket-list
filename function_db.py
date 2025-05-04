@@ -138,3 +138,46 @@ def save_student(student):
                    (student['name'], student['contact'], datetime.now()))
     conn.commit()
     conn.close()
+
+
+def get_current_registrations(event_id):
+    conn = sqlite3.connect(DB_NAME)
+    result = conn.execute('''SELECT student_id FROM attendance WHERE event_id = ?''', (event_id,)).fetchall()
+    conn.close()
+    return [r[0] for r in result]
+
+
+def save_registration_changes(event_id, selected_ids):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        # Remove unselected students
+        if selected_ids:
+            conn.execute('''DELETE FROM attendance WHERE event_id = ? AND student_id NOT IN ({})'''.format(','.join(['?']*len(selected_ids))), [event_id] + selected_ids)
+        else:
+            conn.execute('''DELETE FROM attendance WHERE event_id = ?''', (event_id,))
+        
+        # Add new registrations
+        for student_id in selected_ids:
+            conn.execute('''INSERT OR IGNORE INTO attendance (event_id, student_id, attended, updated_at) VALUES (?,?,?,?)''', (event_id, student_id, False, datetime.now()))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def get_attendance_records(event_id):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        df = pd.read_sql('''SELECT students.id as student_id, students.name, attendance.attended FROM attendance JOIN students ON attendance.student_id = students.id WHERE event_id = ?''', conn, params=(event_id,))
+    finally:
+        conn.close()
+    return df
+
+
+def update_attendance_records(edited_attendance, event_id):
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        for _, row in edited_attendance.iterrows():
+            conn.execute('''UPDATE attendance SET attended = ?, updated_at = ? WHERE event_id = ? AND student_id = ?''', (row['attended'], datetime.now(), event_id, row['student_id']))
+        conn.commit()
+    finally:
+        conn.close()
