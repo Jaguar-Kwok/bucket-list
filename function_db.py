@@ -64,7 +64,7 @@ def fetch_and_save_external_events():
                            location_lat, location_lng, quota, organizer_tc,
                            activity_nature_tc, sessions, thumbnail_url, created_at)
                           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                       (event['subActivityCode'],
+                       (event['subActivityCode'] if 'subActivityCode'=='' else event['activityCode'],
                         event['name_tc'],
                         event['name_en'],
                         event['description_tc'],
