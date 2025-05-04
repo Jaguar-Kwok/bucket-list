@@ -51,40 +51,37 @@ def init_db():
     conn.commit()
     conn.close()
 
-def fetch_external_events():
+def fetch_and_save_external_events():
+    conn = sqlite3.connect(DB_NAME)
     try:
         response = requests.get(API_URL)
         response.raise_for_status()
-        return response.json()['results']
-    except Exception as e:
-        st.error(f"Error fetching external events: {e}")
-        return []
-
-def save_external_event(event):
-    conn = sqlite3.connect(DB_NAME)
-    try:
-        conn.execute('''INSERT OR IGNORE INTO events 
-                      (external_id, name_tc, name_en, description_tc,
-                       start_date, end_date, location_address_tc,
-                       location_lat, location_lng, quota, organizer_tc,
-                       activity_nature_tc, sessions, thumbnail_url, created_at)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
-                   (event['subActivityCode'],
-                    event['name_tc'],
-                    event['name_en'],
-                    event['description_tc'],
-                    event['sessions'][0]['startDate'] if event['sessions'] else None,
-                    event['sessions'][0]['endDate'] if event['sessions'] else None,
-                    event['locationAddress_tc'],
-                    event['locationLatLng']['lat'] if event['locationLatLng'] else None,
-                    event['locationLatLng']['lng'] if event['locationLatLng'] else None,
-                    event['quota'],
-                    event['supportingOrganiserName_tc'],
-                    event['activityNature']['name_tc'],
-                    str(event['sessions']),
-                    event['thumbnailUrl_tc'],
-                    datetime.now()))
+        events = response.json().get('results', [])
+        for event in events:
+            conn.execute('''INSERT OR IGNORE INTO events 
+                          (external_id, name_tc, name_en, description_tc,
+                           start_date, end_date, location_address_tc,
+                           location_lat, location_lng, quota, organizer_tc,
+                           activity_nature_tc, sessions, thumbnail_url, created_at)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                       (event['subActivityCode'],
+                        event['name_tc'],
+                        event['name_en'],
+                        event['description_tc'],
+                        event['sessions'][0]['startDate'] if event['sessions'] else None,
+                        event['sessions'][0]['endDate'] if event['sessions'] else None,
+                        event['locationAddress_tc'],
+                        event['locationLatLng']['lat'] if event['locationLatLng'] else None,
+                        event['locationLatLng']['lng'] if event['locationLatLng'] else None,
+                        event['quota'],
+                        event['supportingOrganiserName_tc'],
+                        event['activityNature']['name_tc'],
+                        str(event['sessions']),
+                        event['thumbnailUrl_tc'],
+                        datetime.now()))
         conn.commit()
+    except Exception as e:
+        st.error(f"Error fetching and saving external events: {e}")
     finally:
         conn.close()
 

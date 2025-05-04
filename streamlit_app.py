@@ -20,16 +20,12 @@ if 'selected_event' not in st.session_state:
 
 # Initialize database and fetch external events
 db.init_db()
-external_events = db.fetch_external_events()
-for event in external_events:
-    db.save_external_event(event)
+db.fetch_and_save_external_events()
 
 # Data management in sidebar
 st.sidebar.header("數據管理")
 if st.sidebar.button("刷新外部活動數據"):
-    external_events = db.fetch_external_events()
-    for event in external_events:
-        db.save_external_event(event)
+    db.fetch_and_save_external_events()
     st.sidebar.success("活動數據已更新")
 
 if st.sidebar.button("導出所有數據"):
