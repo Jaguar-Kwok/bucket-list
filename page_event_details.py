@@ -36,6 +36,10 @@ if st.session_state.selected_event:
             
         with col2:
             st.write(f"**地點:** {event['location_address_tc']}")
+            # Add Google Maps link next to 地點 for navigation
+            google_maps_location_url = f"https://www.google.com/maps?q={event['location_lat']},{event['location_lng']}"
+            st.markdown(f"[📍 在Google地圖中查看]({google_maps_location_url})", unsafe_allow_html=True)
+            
             st.write(f"**主辦單位:** {event['organizer_tc']}")
             st.write(f"**活動性質:** {event['activity_nature_tc']}")
             st.write(f"**描述:** {event['description_tc']}")
