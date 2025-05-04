@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 import sqlite3
 import pandas as pd
@@ -24,13 +25,17 @@ filtered_events = [
         search_term in event['start_date'].lower())
 ]
 
-with st.expander("所有活動", expanded=not st.session_state.selected_event):
+if 'is_expanded' not in st.session_state:
+    st.session_state['is_expanded'] = True
+st.write(f"**expadna** {st.session_state['is_expanded']}")
+with st.expander("所有活動",expanded=st.session_state['is_expanded']):
     for event in filtered_events:
         event_label = f"{event['start_date']} - {event['external_id']} - {event['name_tc']}"
         # Streamlined button handling with session state update
         if st.button(f"📅 {event_label}", key=f"all_event_{event['id']}"):
             st.session_state.selected_event = event['id']
-            st.rerun()  # Ensure UI updates immediately
+            st.session_state['is_expanded'] = False  # Collapse expander on event selection
+
 
 # Selected event details
 if st.session_state.selected_event:
