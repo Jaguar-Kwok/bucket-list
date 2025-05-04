@@ -35,6 +35,11 @@ def init_db():
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
                   name TEXT,
                   contact TEXT,
+                  address TEXT,
+                  english_name TEXT,  
+                  region TEXT, 
+                  school TEXT, 
+                  remarks TEXT,
                   registered_at TIMESTAMP)''')
                   
     c.execute('''CREATE TABLE IF NOT EXISTS attendance
@@ -128,14 +133,16 @@ def save_student(student):
     conn = sqlite3.connect(DB_NAME)
     if 'id' in student:
         conn.execute('''UPDATE students SET 
-                      name=?, contact=?
+                      name=?, contact=?, address=?, english_name=?, region=?, school=?, remarks=?
                       WHERE id=?''',
-                   (student['name'], student['contact'], student['id']))
+                   (student['name'], student['contact'], student['address'], student['english_name'],
+                    student['region'], student['school'], student['remarks'], student['id']))
     else:
         conn.execute('''INSERT INTO students 
-                      (name, contact, registered_at)
-                      VALUES (?,?,?)''',
-                   (student['name'], student['contact'], datetime.now()))
+                      (name, contact, address, english_name, region, school, remarks, registered_at)
+                      VALUES (?,?,?,?,?,?,?,?)''',
+                   (student['name'], student['contact'], student['address'], student['english_name'],
+                    student['region'], student['school'], student['remarks'], datetime.now()))
     conn.commit()
     conn.close()
 

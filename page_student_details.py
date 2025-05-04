@@ -35,7 +35,13 @@ if st.session_state.selected_student:
     
     st.write(f"**姓名:** {student['name']}")
     st.write(f"**聯絡方式:** {student['contact']}")
+    st.write(f"**地址:** {student['address']}")  # 新增字段：地址
+    st.write(f"**英文名:** {student['english_name']}")  # 新增字段：英文名
+    st.write(f"**地區:** {student['region']}")  # 新增字段：地区
+    st.write(f"**學校:** {student['school']}")  # 新增字段：学校
+    st.write(f"**備註:** {student['remarks']}")  # 新增字段：备注
     st.write(f"**註冊時間:** {student['registered_at']}")
+
     if attendance:
         st.write(f"Registed Event: {len(df.index)} Attended Event: {(df['出席'] == 1).sum()} ")
     st.subheader("出席記錄")
