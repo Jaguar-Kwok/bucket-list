@@ -7,9 +7,6 @@ import function_db as db
 
 DB_NAME = "community_center.db"
 
-API_URL = "https://activity.striveandrise.gov.hk/api/activities?targetGroups=SKHWC"
-
-
 # Session state setup
 if 'selected_student' not in st.session_state:
     st.session_state.selected_student = None

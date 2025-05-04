@@ -6,7 +6,7 @@ from datetime import datetime
 import function_db as db
 
 DB_NAME = "community_center.db"
-API_URL = "https://activity.striveandrise.gov.hk/api/activities?targetGroups=SKHWC"
+API_URL = "https://striveandrise.gov.hk/api/activities?hits=1000&targetGroups=SKHWC"
 
 
 def init_db():
