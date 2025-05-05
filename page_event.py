@@ -29,8 +29,14 @@ with st.expander("活動表單", expanded=True):
         quota = st.number_input("名額", min_value=1, value=existing['quota'] if existing else 1)
 
         # Add accurate datetime inputs
-        accurate_start_datetime = st.text_input("精確開始時間 (ISO格式, e.g., 2023-10-01T10:00:00Z)", value=existing.get('accurate_start_datetime', ""))
-        accurate_end_datetime = st.text_input("精確結束時間 (ISO格式, e.g., 2023-10-01T18:00:00Z)", value=existing.get('accurate_end_datetime', ""))
+        accurate_start_datetime = st.text_input(
+            "精確開始時間 (ISO格式, e.g., 2023-10-01T10:00:00Z)", 
+            value=existing.get('accurate_start_datetime', "") if existing else ""
+        )
+        accurate_end_datetime = st.text_input(
+            "精確結束時間 (ISO格式, e.g., 2023-10-01T18:00:00Z)", 
+            value=existing.get('accurate_end_datetime', "") if existing else ""
+        )
 
         if selected_id:
             event_df = pd.DataFrame([existing])
