@@ -27,8 +27,11 @@ with st.expander("活動表單", expanded=True):
         end_date = st.date_input("結束日期", value=datetime.strptime(existing['end_date'], "%Y-%m-%d").date() if existing else datetime.today())
         location = st.text_input("活動地點", value=existing['location_address_tc'] if existing else "")
         quota = st.number_input("名額", min_value=1, value=existing['quota'] if existing else 1)
-        
-        # Added Data Editor
+
+        # Add accurate datetime inputs
+        accurate_start_datetime = st.text_input("精確開始時間 (ISO格式, e.g., 2023-10-01T10:00:00Z)", value=existing.get('accurate_start_datetime', ""))
+        accurate_end_datetime = st.text_input("精確結束時間 (ISO格式, e.g., 2023-10-01T18:00:00Z)", value=existing.get('accurate_end_datetime', ""))
+
         if selected_id:
             event_df = pd.DataFrame([existing])
             edited_event = st.data_editor(event_df, num_rows="fixed")
@@ -45,7 +48,9 @@ with st.expander("活動表單", expanded=True):
                 'organizer_tc': existing['organizer_tc'] if existing else "",
                 'activity_nature_tc': existing['activity_nature_tc'] if existing else "",
                 'sessions': existing['sessions'] if existing else "[]",
-                'thumbnail_url': existing['thumbnail_url'] if existing else ""
+                'thumbnail_url': existing['thumbnail_url'] if existing else "",
+                'accurate_start_datetime': accurate_start_datetime,  # New field
+                'accurate_end_datetime': accurate_end_datetime  # New field
             }
         
         if st.form_submit_button("保存活動"):

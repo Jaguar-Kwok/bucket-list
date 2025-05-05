@@ -49,6 +49,9 @@ if st.session_state.selected_event:
             st.write(f"**活動編號:** {event['external_id']}")
             st.write(f"**開始日期:** {event['start_date']}")
             st.write(f"**結束日期:** {event['end_date']}")
+            # Add accurate datetime fields
+            st.write(f"**精確開始時間:** {event.get('accurate_start_datetime', 'N/A')}")
+            st.write(f"**精確結束時間:** {event.get('accurate_end_datetime', 'N/A')}")
             st.write(f"**名額:** {event['quota']}")
             
         with col2:

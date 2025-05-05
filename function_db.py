@@ -29,7 +29,9 @@ def init_db():
                   activity_nature_tc TEXT,
                   sessions TEXT,
                   thumbnail_url TEXT,
-                  created_at TIMESTAMP)''')
+                  created_at TIMESTAMP,
+                  accurate_start_datetime TEXT, 
+                  accurate_end_datetime TEXT)''') 
                   
     c.execute('''CREATE TABLE IF NOT EXISTS students
                  (id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -58,12 +60,17 @@ def fetch_and_save_external_events():
         response.raise_for_status()
         events = response.json().get('results', [])
         for event in events:
+            session = event['sessions'][0] if event['sessions'] else {}
+            accurate_start_datetime = f"{session.get('startDate', '')}T{session.get('startTime', '')}:00Z" if session else None
+            accurate_end_datetime = f"{session.get('endDate', '')}T{session.get('endTime', '')}:00Z" if session else accurate_start_datetime
+            
             conn.execute('''INSERT OR IGNORE INTO events 
                           (external_id, name_tc, name_en, description_tc,
                            start_date, end_date, location_address_tc,
                            location_lat, location_lng, quota, organizer_tc,
-                           activity_nature_tc, sessions, thumbnail_url, created_at)
-                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                           activity_nature_tc, sessions, thumbnail_url, created_at,
+                           accurate_start_datetime, accurate_end_datetime)
+                          VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                        (event['subActivityCode'] if event.get('subActivityCode') and event['subActivityCode'] != "" else event['activityCode'],
                         event['name_tc'],
                         event['name_en'],
@@ -71,16 +78,19 @@ def fetch_and_save_external_events():
                         event['sessions'][0]['startDate'] if event['sessions'] else None,
                         event['sessions'][0]['endDate'] if event['sessions'] else None,
                         event['locationAddress_tc'],
-                        event['locationLatLng']['lat'] if event['locationLatLng']  is not None and 'lat' in event['locationLatLng'] else 0.0,
-                        event['locationLatLng']['lng'] if event['locationLatLng']  is not None and 'lng' in event['locationLatLng'] else 0.0,
+                        event['locationLatLng']['lat'] if event['locationLatLng'] is not None and 'lat' in event['locationLatLng'] else 0.0,
+                        event['locationLatLng']['lng'] if event['locationLatLng'] is not None and 'lng' in event['locationLatLng'] else 0.0,
                         event['quota'],
                         event['supportingOrganiserName_tc'],
                         event['activityNature']['name_tc'],
                         str(event['sessions']),
                         event['thumbnailUrl_tc'],
-                        datetime.now()))
+                        datetime.now(),
+                        accurate_start_datetime, 
+                        accurate_end_datetime)) 
         conn.commit()
     except Exception as e:
+        print(f"Error fetching and saving external events: {e}")  # Added print statement
         st.error(f"Error fetching and saving external events: {e}")
     finally:
         conn.close()
@@ -105,28 +115,35 @@ def save_event(event):
                       name_tc=?, name_en=?, description_tc=?, start_date=?, 
                       end_date=?, location_address_tc=?, location_lat=?, 
                       location_lng=?, quota=?, organizer_tc=?, 
-                      activity_nature_tc=?, sessions=?, thumbnail_url=?
+                      activity_nature_tc=?, sessions=?, thumbnail_url=?,
+                      accurate_start_datetime=?, accurate_end_datetime=?  # Updated
                       WHERE id=?''',
                    (event['name_tc'], event['name_en'], event['description_tc'],
                     event['start_date'], event['end_date'], event['location_address_tc'],
-                    event['location_lat'] if event['location_lat'] is not None else 0.0,  # Modified
-                    event['location_lng'] if event['location_lng'] is not None else 0.0,  # Modified
+                    event['location_lat'] if event['location_lat'] is not None else 0.0,
+                    event['location_lng'] if event['location_lng'] is not None else 0.0,
                     event['quota'],
                     event['organizer_tc'], event['activity_nature_tc'],
-                    event['sessions'], event['thumbnail_url'], event['id']))
+                    event['sessions'], event['thumbnail_url'],
+                    event.get('accurate_start_datetime'),  # New field
+                    event.get('accurate_end_datetime'),  # New field
+                    event['id']))
     else:
         conn.execute('''INSERT INTO events 
                       (name_tc, name_en, description_tc, start_date, end_date,
                        location_address_tc, location_lat, location_lng, quota,
-                       organizer_tc, activity_nature_tc, sessions, thumbnail_url, created_at)
-                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
+                       organizer_tc, activity_nature_tc, sessions, thumbnail_url, created_at,
+                       accurate_start_datetime, accurate_end_datetime)  # Updated
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''',
                    (event['name_tc'], event['name_en'], event['description_tc'],
                     event['start_date'], event['end_date'], event['location_address_tc'],
-                    event['location_lat'] if event['location_lat'] is not None else 0.0,  # Modified
-                    event['location_lng'] if event['location_lng'] is not None else 0.0,  # Modified
+                    event['location_lat'] if event['location_lat'] is not None else 0.0,
+                    event['location_lng'] if event['location_lng'] is not None else 0.0,
                     event['quota'],
                     event['organizer_tc'], event['activity_nature_tc'],
-                    event['sessions'], event['thumbnail_url'], datetime.now()))
+                    event['sessions'], event['thumbnail_url'], datetime.now(),
+                    event.get('accurate_start_datetime'),  # New field
+                    event.get('accurate_end_datetime')))  # New field
     conn.commit()
     conn.close()
 
