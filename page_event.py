@@ -1,7 +1,7 @@
 import streamlit as st
 import function_db as db
 from datetime import datetime
-
+import pandas as pd
 
 st.title("活動管理")
 
@@ -28,7 +28,12 @@ with st.expander("活動表單", expanded=True):
         location = st.text_input("活動地點", value=existing['location_address_tc'] if existing else "")
         quota = st.number_input("名額", min_value=1, value=existing['quota'] if existing else 1)
         
-        if st.form_submit_button("保存活動"):
+        # Added Data Editor
+        if selected_id:
+            event_df = pd.DataFrame([existing])
+            edited_event = st.data_editor(event_df, num_rows="fixed")
+            new_event = edited_event.iloc[0].to_dict()
+        else:
             new_event = {
                 'name_tc': name_tc,
                 'name_en': name_en,
@@ -42,6 +47,8 @@ with st.expander("活動表單", expanded=True):
                 'sessions': existing['sessions'] if existing else "[]",
                 'thumbnail_url': existing['thumbnail_url'] if existing else ""
             }
+        
+        if st.form_submit_button("保存活動"):
             if selected_id:
                 new_event['id'] = selected_id
             db.save_event(new_event)
