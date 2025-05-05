@@ -33,10 +33,10 @@ if st.sidebar.button("導出所有數據"):
     st.sidebar.success("數據導出成功")
 
 pg = st.navigation([
-    st.Page("page_home.py", title="Home"),
-    st.Page("page_event.py", title="Events"),
-    st.Page("page_students.py", title="Students"),
-    st.Page("page_event_details.py", title="Event Details"),
-    st.Page("page_student_details.py", title="Student Details")
+    st.Page("page_home.py", title="首頁"),
+    st.Page("page_event.py", title="活動"),
+    st.Page("page_students.py", title="學生"),
+    st.Page("page_event_details.py", title="活動詳情"),
+    st.Page("page_student_details.py", title="學生詳情")
 ])
 pg.run()

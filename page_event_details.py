@@ -40,9 +40,8 @@ if st.session_state.selected_event:
         # Improved DataFrame handling
         df = pd.DataFrame({'lat': [event['location_lat']], 'lon': [event['location_lng']]})
         valid_coordinates = not df.isnull().values.any()
-
         st.divider()
-        st.subheader("活動詳細資料")
+        st.subheader(event['name_tc'])
         col1, col2 = st.columns(2)
         with col1:
             if event['thumbnail_url']:
