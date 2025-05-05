@@ -47,11 +47,10 @@ if st.session_state.selected_event:
             if event['thumbnail_url']:
                 st.image(event['thumbnail_url'], width=300)
             st.write(f"**活動編號:** {event['external_id']}")
-            st.write(f"**開始日期:** {event['start_date']}")
-            st.write(f"**結束日期:** {event['end_date']}")
-            # Add accurate datetime fields
-            st.write(f"**精確開始時間:** {event.get('accurate_start_datetime', 'N/A')}")
-            st.write(f"**精確結束時間:** {event.get('accurate_end_datetime', 'N/A')}")
+            st.write(f"**開始日期:** {datetime.strptime(event['accurate_start_datetime'], '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d %H:%M')}")
+            st.write(f"**結束日期:** {datetime.strptime(event['accurate_end_datetime'], '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d %H:%M')}")
+            st.write(f"**主辦單位:** {event['organizer_tc']}")
+            st.write(f"**活動性質:** {event['activity_nature_tc']}")    
             st.write(f"**名額:** {event['quota']}")
             
         with col2:
